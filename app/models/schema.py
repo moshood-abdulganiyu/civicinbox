@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -19,11 +19,11 @@ class Entities(BaseModel):
     All fields optional: absence of a field is itself signal,
     captured separately in `missing_information`.
     """
-    student_name: Optional[str] = None
-    student_id: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    date_mentioned: Optional[str] = None
+    student_name: str | None = None
+    student_id: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    date_mentioned: str | None = None
 
 
 class TriageResult(BaseModel):
