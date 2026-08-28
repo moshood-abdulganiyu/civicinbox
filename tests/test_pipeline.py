@@ -115,3 +115,103 @@ def test_llm_client_mocked():
 
     assert result == "mocked reply"
     mock_client.chat.completions.create.assert_called_once()
+
+
+
+
+############################ SETP 12 Test ####################
+from unittest.mock import patch
+import pytest
+from pydantic import ValidationError
+
+from app.services.llm_classifier import classify_with_llm, LLMClassificationFailed
+
+
+VALID_RESPONSE = """{
+    "category": "financial_aid",
+    "urgency": "high",
+    "requested_action": "review application status",
+    "entities": {"student_id": "12345"},
+    "missing_information": [],
+    "draft_response": "Thank you for reaching out, we are reviewing your application.",
+    "confidence": 0.9
+}"""
+
+MARKDOWN_WRAPPED_RESPONSE = f"""```json
+                                {VALID_RESPONSE}
+                                ```"""
+
+MISSING_FIELD_RESPONSE = """{
+                                "category": "financial_aid",
+                                "urgency": "high"
+                            }"""
+
+VALID_RESPONSE_DOCUMENT_REQUEST = """{
+    "category": "document_request",
+    "urgency": "low",
+    "requested_action": "provide submission instructions",
+    "entities": {},
+    "missing_information": [],
+    "draft_response": "You can submit the document through the student portal.",
+    "confidence": 0.85
+}"""
+
+
+def test_classify_with_llm_recovers_after_malformed_then_valid():
+    """First attempt returns markdown-fenced JSON (JSONDecodeError).
+    Second attempt returns valid JSON. Should recover and return a
+    valid TriageResult without exhausting all 3 attempts."""
+    with patch(
+        "app.services.llm_classifier.call_llm",
+        side_effect=[MARKDOWN_WRAPPED_RESPONSE, VALID_RESPONSE],
+    ) as mock_call:
+        result = classify_with_llm("My scholarship has not been reviewed.")
+
+        assert result.category == "financial_aid"
+        assert result.urgency == "high"
+        assert mock_call.call_count == 2
+
+
+def test_classify_with_llm_recovers_after_validation_error_then_valid():
+    """First attempt is valid JSON but missing required fields
+    (ValidationError). Second attempt is fully valid. Should recover."""
+    with patch(
+        "app.services.llm_classifier.call_llm",
+        side_effect=[MISSING_FIELD_RESPONSE, VALID_RESPONSE_DOCUMENT_REQUEST],
+    ) as mock_call:
+        result = classify_with_llm("Where do I submit this document?")
+
+        assert result.category == "document_request"
+        assert mock_call.call_count == 2
+
+
+def test_classify_with_llm_fails_gracefully_after_exhausting_attempts(caplog):
+    """All attempts return malformed/invalid output. Should raise
+    LLMClassificationFailed (not crash with an unhandled exception),
+    and log the failure."""
+    with patch(
+        "app.services.llm_classifier.call_llm",
+        side_effect=[MARKDOWN_WRAPPED_RESPONSE, MISSING_FIELD_RESPONSE, "not json at all"],
+    ) as mock_call:
+        with pytest.raises(LLMClassificationFailed) as exc_info:
+            classify_with_llm("The water pump is broken.", max_attempts=3)
+
+        assert mock_call.call_count == 3
+        assert exc_info.value.last_error is not None
+        assert "LLM classification failed after 3 attempts" in caplog.text
+
+
+def test_classify_with_llm_repair_prompt_reflects_most_recent_error():
+    """Confirms the repair prompt sent on the final attempt reflects
+    the error from the attempt immediately before it, not an
+    accumulated history of all prior errors (per our earlier design
+    decision)."""
+    with patch(
+        "app.services.llm_classifier.call_llm",
+        side_effect=[MARKDOWN_WRAPPED_RESPONSE, MISSING_FIELD_RESPONSE, VALID_RESPONSE],
+    ) as mock_call:
+        classify_with_llm("Test message.", max_attempts=3)
+
+        third_call_prompt = mock_call.call_args_list[2].args[0]
+        assert "field" in third_call_prompt.lower() or "missing" in third_call_prompt.lower()
+
