@@ -2,6 +2,9 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+from app.core.preprocessing import normalize_text
 
 
 def test_baseline_eval_runs():
@@ -30,6 +33,7 @@ def test_baseline_eval_runs():
         [sys.executable, "scripts/evaluate_baseline.py"],
         capture_output=True,
         text=True,
+        check=False,
     )
     assert result.returncode == 0, f"Script failed:\n{result.stderr}"
 
@@ -40,7 +44,14 @@ def test_baseline_eval_runs():
     report = json.loads(report_files[-1].read_text())
 
     # Top-level schema
-    for key in ("date", "model", "n_test_examples", "macro_f1", "accuracy", "per_class"):
+    for key in (
+        "date",
+        "model",
+        "n_test_examples",
+        "macro_f1",
+        "accuracy",
+        "per_class",
+    ):
         assert key in report, f"Missing key: {key}"
 
     # Value sanity
@@ -57,19 +68,6 @@ def test_baseline_eval_runs():
         assert 0.0 <= vals["precision"] <= 1.0
         assert 0.0 <= vals["recall"] <= 1.0
         assert 0.0 <= vals["f1"] <= 1.0
-
-
-######################################################################
-######################################################################
-######################################################################
-
-
-
-
-
-
-# tests/test_pipeline.py
-from app.core.preprocessing import normalize_text
 
 
 def test_normalize_text_whitespace_and_case():
@@ -91,3 +89,29 @@ def test_normalize_text_empty_string():
 def test_normalize_text_repeated_punctuation():
     assert normalize_text("Is this urgent???") == "is this urgent?"
     assert normalize_text("please help....") == "please help."
+
+
+def test_llm_client_mocked():
+    """Mocks get_client() entirely, so this test never touches the
+    network and never costs API credit -- required, since the master
+    plan's budget-aware rule says real LLM calls happen only where I
+    deliberately choose to spend, never as a side effect of running
+    the test suite.
+
+    Confirms call_llm() correctly navigates the OpenAI response shape
+    (response.choices[0].message.content) and returns it as plain text.
+    """
+    fake_response = MagicMock()
+    fake_response.choices = [MagicMock(message=MagicMock(content="mocked reply"))]
+
+    with patch("app.services.llm_client.get_client") as mock_get_client:
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = fake_response
+        mock_get_client.return_value = mock_client
+
+        from app.services.llm_client import call_llm
+
+        result = call_llm("test prompt")
+
+    assert result == "mocked reply"
+    mock_client.chat.completions.create.assert_called_once()
