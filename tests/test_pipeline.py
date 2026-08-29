@@ -117,15 +117,10 @@ def test_llm_client_mocked():
     mock_client.chat.completions.create.assert_called_once()
 
 
-
-
-############################ SETP 12 Test ####################
-from unittest.mock import patch
+############################ STEP 12 Test ####################
 import pytest
-from pydantic import ValidationError
 
-from app.services.llm_classifier import classify_with_llm, LLMClassificationFailed
-
+from app.services.llm_classifier import LLMClassificationFailed, classify_with_llm
 
 VALID_RESPONSE = """{
     "category": "financial_aid",
@@ -191,7 +186,11 @@ def test_classify_with_llm_fails_gracefully_after_exhausting_attempts(caplog):
     and log the failure."""
     with patch(
         "app.services.llm_classifier.call_llm",
-        side_effect=[MARKDOWN_WRAPPED_RESPONSE, MISSING_FIELD_RESPONSE, "not json at all"],
+        side_effect=[
+            MARKDOWN_WRAPPED_RESPONSE,
+            MISSING_FIELD_RESPONSE,
+            "not json at all",
+        ],
     ) as mock_call:
         with pytest.raises(LLMClassificationFailed) as exc_info:
             classify_with_llm("The water pump is broken.", max_attempts=3)
@@ -213,5 +212,7 @@ def test_classify_with_llm_repair_prompt_reflects_most_recent_error():
         classify_with_llm("Test message.", max_attempts=3)
 
         third_call_prompt = mock_call.call_args_list[2].args[0]
-        assert "field" in third_call_prompt.lower() or "missing" in third_call_prompt.lower()
-
+        assert (
+            "field" in third_call_prompt.lower()
+            or "missing" in third_call_prompt.lower()
+        )

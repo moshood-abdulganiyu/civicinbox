@@ -109,7 +109,9 @@ def main() -> int:
             print(f"  - {e}")
         return 1
 
-    print(f"PASSED — {len(rows)} rows, taxonomy matches, no duplicates, no empty labels.")
+    print(
+        f"PASSED — {len(rows)} rows, taxonomy matches, no duplicates, no empty labels."
+    )
     return 0
 
 

@@ -3,8 +3,8 @@ import logging
 
 from pydantic import ValidationError
 
+from app.models.schema import TriageResult
 from app.services.llm_client import call_llm
-from app.models.schema import TriageResult  
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 class LLMClassificationFailed(Exception):
     """Raised when the LLM fails to produce a schema-valid TriageResult
     after all retry attempts are exhausted."""
+
     def __init__(self, message: str, last_error: Exception | None = None):
         super().__init__(message)
         self.last_error = last_error
@@ -64,7 +65,9 @@ def classify_with_llm(message: str, max_attempts: int = 3) -> TriageResult:
             logger.warning(f"LLM classify attempt {attempt}/{max_attempts} failed: {e}")
             prompt = build_repair_prompt(message, raw, e)
 
-    logger.error(f"LLM classification failed after {max_attempts} attempts: {last_error}")
+    logger.error(
+        f"LLM classification failed after {max_attempts} attempts: {last_error}"
+    )
     raise LLMClassificationFailed(
         f"Failed after {max_attempts} attempts: {last_error}",
         last_error=last_error,

@@ -77,19 +77,25 @@ def main() -> None:
     # no risk of a vectorizer/classifier mismatch.
     pipeline = Pipeline(
         [
-            ("tfidf", TfidfVectorizer(
-                ngram_range=(1, 2),   # unigrams + bigrams: captures phrases
-                                       # like "not working", not just single words
-                min_df=2,              # ignore words appearing in only 1 message
-                                        # (likely noise, not a real signal at this size)
-            )),
-            ("clf", LogisticRegression(
-                max_iter=1000,         # TF-IDF vectors can need more iterations
-                                        # to converge than sklearn's default (100)
-                class_weight="balanced",  # protects against any residual
-                                           # category imbalance after your 450-row expansion
-                random_state=RANDOM_STATE,
-            )),
+            (
+                "tfidf",
+                TfidfVectorizer(
+                    ngram_range=(1, 2),  # unigrams + bigrams: captures phrases
+                    # like "not working", not just single words
+                    min_df=2,  # ignore words appearing in only 1 message
+                    # (likely noise, not a real signal at this size)
+                ),
+            ),
+            (
+                "clf",
+                LogisticRegression(
+                    max_iter=1000,  # TF-IDF vectors can need more iterations
+                    # to converge than sklearn's default (100)
+                    class_weight="balanced",  # protects against any residual
+                    # category imbalance after your 450-row expansion
+                    random_state=RANDOM_STATE,
+                ),
+            ),
         ]
     )
 
