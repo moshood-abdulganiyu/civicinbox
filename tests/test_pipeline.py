@@ -117,7 +117,10 @@ def test_llm_client_mocked():
     mock_client.chat.completions.create.assert_called_once()
 
 
-############################ STEP 12 Test ####################
+# ---------------------------------------------------------------------------
+# STEP 12 — LLM classifier unit tests (mocked)
+# ---------------------------------------------------------------------------
+
 import pytest
 
 from app.services.llm_classifier import LLMClassificationFailed, classify_with_llm
@@ -216,3 +219,41 @@ def test_classify_with_llm_repair_prompt_reflects_most_recent_error():
             "field" in third_call_prompt.lower()
             or "missing" in third_call_prompt.lower()
         )
+
+
+# ---------------------------------------------------------------------------
+# STEP 13 — Live pipeline structural check (mocked)
+# ---------------------------------------------------------------------------
+
+
+def test_classify_with_llm_all_fields_non_null():
+    """Structural assertion: classify_with_llm() must return a TriageResult
+    with every required field populated (not None), regardless of content
+    quality. This mocks call_llm so it runs free in CI — the real 5-message
+    live check lives in scripts/step13_spot_check.py and is run manually."""
+    from unittest.mock import patch
+
+    from app.services.llm_classifier import classify_with_llm
+
+    valid_response = json.dumps(
+        {
+            "category": "general_inquiry",
+            "urgency": "low",
+            "requested_action": "Provide office hours information",
+            "entities": {},
+            "missing_information": [],
+            "draft_response": "Our office hours are Monday to Friday, 9 AM to 5 PM.",
+            "confidence": 0.9,
+        }
+    )
+
+    with patch("app.services.llm_classifier.call_llm", return_value=valid_response):
+        result = classify_with_llm("What are the office hours for the registrar this week?")
+
+    assert result.category is not None
+    assert result.urgency is not None
+    assert result.requested_action is not None
+    assert result.entities is not None
+    assert result.missing_information is not None
+    assert result.draft_response is not None
+    assert result.confidence is not None

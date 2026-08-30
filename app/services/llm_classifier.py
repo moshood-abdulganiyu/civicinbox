@@ -20,15 +20,16 @@ class LLMClassificationFailed(Exception):
 
 SCHEMA_INSTRUCTIONS = """Return ONLY a JSON object with exactly these fields, no prose, no markdown fences:
 {
-  "category": string,
-  "urgency": string,
+  "category": string, must be exactly one of: "academic_records", "financial_aid", "registration", "document_request", "general_inquiry", "complaint_escalation",
+  "urgency": string, must be exactly one of: "low", "medium", "high",
   "requested_action": string,
   "entities": object,
   "missing_information": array of strings,
   "draft_response": string,
   "confidence": float between 0 and 1
-}"""
+}
 
+Category selection rule: if the message explicitly asks to escalate, file a complaint, or expresses frustration about an unresolved delay, classify as "complaint_escalation" even if the underlying subject is a document, registration, or academic matter."""
 
 def build_prompt(message: str) -> str:
     return f"""Classify the following message from a university student affairs/registrar inbox.
