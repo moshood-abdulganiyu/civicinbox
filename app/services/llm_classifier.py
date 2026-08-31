@@ -1,12 +1,24 @@
 import json
 import logging
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from app.models.schema import TriageResult
 from app.services.llm_client import call_llm
 
 logger = logging.getLogger(__name__)
+
+
+
+class LLMClassificationOutcome(BaseModel):
+    """Wraps a successful LLM classification with retry metadata.
+
+    attempts_used lets callers (routing logic, logging, eval scripts)
+    distinguish a first-try success from one that needed repair prompts,
+    without threading a bare int through call sites.
+    """
+    result: TriageResult
+    attempts_used: int
 
 
 class LLMClassificationFailed(Exception):
@@ -52,7 +64,10 @@ Message: \"\"\"{message}\"\"\"
 {SCHEMA_INSTRUCTIONS}"""
 
 
-def classify_with_llm(message: str, max_attempts: int = 3) -> TriageResult:
+############################
+# STEP 14
+############################
+def classify_with_llm(message: str, max_attempts: int = 3) -> LLMClassificationOutcome:
     prompt = build_prompt(message)
     last_error: Exception | None = None
 
@@ -60,7 +75,8 @@ def classify_with_llm(message: str, max_attempts: int = 3) -> TriageResult:
         raw = call_llm(prompt)
         try:
             data = json.loads(raw)
-            return TriageResult.model_validate(data)
+            result = TriageResult.model_validate(data)
+            return LLMClassificationOutcome(result=result, attempts_used=attempt)
         except (json.JSONDecodeError, ValidationError) as e:
             last_error = e
             logger.warning(f"LLM classify attempt {attempt}/{max_attempts} failed: {e}")
@@ -73,3 +89,4 @@ def classify_with_llm(message: str, max_attempts: int = 3) -> TriageResult:
         f"Failed after {max_attempts} attempts: {last_error}",
         last_error=last_error,
     )
+
