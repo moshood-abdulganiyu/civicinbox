@@ -86,7 +86,7 @@ def classify_with_llm(message: str, max_attempts: int = 3) -> LLMClassificationO
         f"LLM classification failed after {max_attempts} attempts: {last_error}"
     )
     raise LLMClassificationFailed(
-        f"Failed after {max_attempts} attempts: {last_error}",
+        f"Failed after {max_attempts} attempts: {type(last_error).__name__}",
         last_error=last_error,
     )
 
