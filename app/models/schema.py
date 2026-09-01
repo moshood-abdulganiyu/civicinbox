@@ -41,9 +41,9 @@ class TriageResult(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0)
 
 
-############################################################
-###################### STEP 10 #############################
-############################################################
+# ------------------------------
+# STEP 10 
+# ------------------------------
 
 
 class ClassifyRequest(BaseModel):
@@ -69,3 +69,17 @@ class BaselineClassification(BaseModel):
     confidence: float = Field(
         ..., ge=0.0, le=1.0, description="Max class probability from predict_proba()."
     )
+
+
+# ------------------------------
+# STEP 15 
+# ------------------------------
+
+from typing import Literal
+
+ReviewStatus = Literal["auto_approved", "needs_review"]
+
+class LLMClassificationResponse(BaseModel):
+    result: TriageResult
+    status: ReviewStatus
+    attempts_used: int

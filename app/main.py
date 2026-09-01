@@ -22,3 +22,34 @@ def classify_baseline(request: ClassifyRequest) -> BaselineClassification:
         # crashed" (bare 500). Real failure-path hardening for other
         # cases (bad input, DB errors) is Step 21, not this step.
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+
+from fastapi import APIRouter, HTTPException
+
+from app.services.llm_classifier import classify_with_llm, LLMClassificationFailed
+from app.core.routing import determine_review_status
+from app.models.schema import LLMClassificationResponse
+
+router = APIRouter()  # or reuse your existing router
+
+@router.post("/classify/llm", response_model=LLMClassificationResponse)
+def classify_llm_endpoint(message: str):
+    try:
+        outcome = classify_with_llm(message)
+    except LLMClassificationFailed:
+        raise HTTPException(
+            status_code=503,
+            detail="LLM classification failed after retries",
+        )
+
+    status = determine_review_status(
+        outcome.result,
+        llm_attempts_used=outcome.attempts_used,
+    )
+
+    return LLMClassificationResponse(
+        result=outcome.result,
+        status=status,
+        attempts_used=outcome.attempts_used,
+    )
