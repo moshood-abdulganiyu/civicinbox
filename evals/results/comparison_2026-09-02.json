@@ -1,0 +1,97 @@
+{
+  "date": "2026-09-02",
+  "test_split_size": 90,
+  "sample_limit_used": null,
+  "baseline": {
+    "n_test_examples": 90,
+    "macro_f1": 0.834928392992909,
+    "accuracy": 0.8333333333333334,
+    "per_class": {
+      "academic_records": {
+        "precision": 0.625,
+        "recall": 0.6666666666666666,
+        "f1-score": 0.6451612903225806,
+        "support": 15.0
+      },
+      "complaint_escalation": {
+        "precision": 0.8666666666666667,
+        "recall": 0.8666666666666667,
+        "f1-score": 0.8666666666666667,
+        "support": 15.0
+      },
+      "document_request": {
+        "precision": 0.7777777777777778,
+        "recall": 0.9333333333333333,
+        "f1-score": 0.8484848484848485,
+        "support": 15.0
+      },
+      "financial_aid": {
+        "precision": 1.0,
+        "recall": 0.8,
+        "f1-score": 0.8888888888888888,
+        "support": 15.0
+      },
+      "general_inquiry": {
+        "precision": 0.875,
+        "recall": 0.9333333333333333,
+        "f1-score": 0.9032258064516129,
+        "support": 15.0
+      },
+      "registration": {
+        "precision": 0.9230769230769231,
+        "recall": 0.8,
+        "f1-score": 0.8571428571428571,
+        "support": 15.0
+      }
+    }
+  },
+  "llm": {
+    "n_test_examples": 90,
+    "n_scored": 90,
+    "n_invalid_json_failures": 0,
+    "invalid_json_rate": 0.0,
+    "n_needs_review": 0,
+    "n_auto_approved": 90,
+    "pct_routed_to_review": 0.0,
+    "macro_f1": 0.7239758698092031,
+    "accuracy": 0.7444444444444445,
+    "per_class": {
+      "academic_records": {
+        "precision": 1.0,
+        "recall": 0.2,
+        "f1-score": 0.3333333333333333,
+        "support": 15.0
+      },
+      "complaint_escalation": {
+        "precision": 0.5172413793103449,
+        "recall": 1.0,
+        "f1-score": 0.6818181818181818,
+        "support": 15.0
+      },
+      "document_request": {
+        "precision": 0.7058823529411765,
+        "recall": 0.8,
+        "f1-score": 0.75,
+        "support": 15.0
+      },
+      "financial_aid": {
+        "precision": 1.0,
+        "recall": 0.8,
+        "f1-score": 0.8888888888888888,
+        "support": 15.0
+      },
+      "general_inquiry": {
+        "precision": 0.8235294117647058,
+        "recall": 0.9333333333333333,
+        "f1-score": 0.875,
+        "support": 15.0
+      },
+      "registration": {
+        "precision": 0.9166666666666666,
+        "recall": 0.7333333333333333,
+        "f1-score": 0.8148148148148148,
+        "support": 15.0
+      }
+    }
+  }
+}
