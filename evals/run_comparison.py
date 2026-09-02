@@ -15,7 +15,7 @@ Usage:
 import argparse
 import json
 import sys
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sklearn.metrics import classification_report
@@ -23,9 +23,9 @@ from sklearn.model_selection import train_test_split
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.core.routing import determine_review_status  # noqa: E402
-from app.services.baseline_classifier import predict_baseline  # noqa: E402
-from app.services.llm_classifier import LLMClassificationFailed, classify_with_llm  # noqa: E402
+from app.core.routing import determine_review_status
+from app.services.baseline_classifier import predict_baseline
+from app.services.llm_classifier import LLMClassificationFailed, classify_with_llm
 
 RANDOM_STATE = 42  # must match scripts/train_baseline.py exactly
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "labeled_messages.jsonl"
@@ -128,6 +128,7 @@ def main():
     )
     args = parser.parse_args()
 
+    today = datetime.now(tz=UTC).date()
     records = load_records()
     test_records = get_test_split(records)
     print(f"Test split: {len(test_records)} messages (of {len(records)} total, 20% held out)")
@@ -145,7 +146,7 @@ def main():
     print(f"  llm % routed to review: {llm_results['pct_routed_to_review']:.1f}%")
 
     out = {
-        "date": str(date.today()),
+        "date": str(today),
         "test_split_size": len(test_records),
         "sample_limit_used": args.sample,
         "baseline": baseline_results,
@@ -153,7 +154,7 @@ def main():
     }
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = RESULTS_DIR / f"comparison_{date.today()}.json"
+    out_path = RESULTS_DIR / f"comparison_{today}.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2)
     print(f"\nSaved: {out_path}")
