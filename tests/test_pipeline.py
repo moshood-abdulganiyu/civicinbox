@@ -328,22 +328,19 @@ from app.models.db_models import Base, Prediction, Request, ReviewerCorrection
 
 
 def test_db_schema():
-    # In-memory engine: exists only for the lifetime of this test.
     engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)  # creates all three tables
+    Base.metadata.create_all(engine)
 
     SessionLocal = sessionmaker(bind=engine)
     session = SessionLocal()
 
-    # --- Insert one Request ---
     req = Request(message_text="My scholarship application has not been reviewed.")
     session.add(req)
     session.commit()
 
-    # TODO: assert req.id is not None
-    # TODO: assert req.created_at is not None
+    assert req.id is not None
+    assert req.created_at is not None
 
-    # --- Insert one Prediction tied to that Request ---
     pred = Prediction(
         request_id=req.id,
         model_type="baseline",
@@ -358,10 +355,9 @@ def test_db_schema():
     session.add(pred)
     session.commit()
 
-    # TODO: assert pred.id is not None
-    # TODO: assert pred.request_id == req.id
+    assert pred.id is not None
+    assert pred.request_id == req.id
 
-    # --- Insert one ReviewerCorrection tied to that Prediction ---
     correction = ReviewerCorrection(
         prediction_id=pred.id,
         corrected_category="document_request",
@@ -370,17 +366,17 @@ def test_db_schema():
     session.add(correction)
     session.commit()
 
-    # TODO: assert correction.id is not None
-    # TODO: assert correction.prediction_id == pred.id
+    assert correction.id is not None
+    assert correction.prediction_id == pred.id
 
-    # --- Read back and verify values round-trip correctly ---
-    session.get(Request, req.id)
-    session.get(Prediction, pred.id)
-    session.get(ReviewerCorrection, correction.id)
+    fetched_req = session.get(Request, req.id)
+    fetched_pred = session.get(Prediction, pred.id)
+    fetched_correction = session.get(ReviewerCorrection, correction.id)
 
-    # TODO: assert fetched_req.message_text == "My scholarship application has not been reviewed."
-    # TODO: assert fetched_pred.category == "academic_records"
-    # TODO: assert fetched_pred.confidence == 0.82
-    # TODO: assert fetched_correction.corrected_category == "document_request"
+    assert fetched_req.message_text == "My scholarship application has not been reviewed."
+    assert fetched_pred.category == "academic_records"
+    assert fetched_pred.confidence == 0.82
+    assert fetched_correction.corrected_category == "document_request"
 
     session.close()
+    engine.dispose()
