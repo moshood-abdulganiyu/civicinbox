@@ -12,7 +12,6 @@ from pathlib import Path
 import joblib
 
 from app.core.preprocessing import normalize_text
-from app.models.schema import BaselineClassification
 
 MODEL_PATH = Path("data/models/baseline.joblib")
 
@@ -35,9 +34,12 @@ def _get_pipeline():
         _pipeline = joblib.load(MODEL_PATH)
     return _pipeline
 
+from app.models.schema import BaselinePrediction
 
-def predict_baseline(raw_message: str) -> BaselineClassification:
-    """Normalize raw_message the same way Step 8 normalized training
+
+def predict_baseline(raw_message: str) -> BaselinePrediction:
+    """
+    Normalize raw_message the same way Step 8 normalized training
     data, then predict category + confidence (max class probability).
     """
     pipeline = _get_pipeline()
@@ -46,4 +48,4 @@ def predict_baseline(raw_message: str) -> BaselineClassification:
     category = pipeline.predict([normalized])[0]
     confidence = float(pipeline.predict_proba([normalized])[0].max())
 
-    return BaselineClassification(category=category, confidence=confidence)
+    return BaselinePrediction(category=category, confidence=confidence)
