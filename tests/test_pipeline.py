@@ -5,10 +5,9 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from app.core.preprocessing import normalize_text
-
-
-
-from app.services.llm_classifier import TriageResult  # adjust import path if TriageResult actually lives elsewhere, e.g. app.models.schema
+from app.services.llm_classifier import (
+    TriageResult,  # adjust import path if TriageResult actually lives elsewhere, e.g. app.models.schema
+)
 
 
 def _make_triage_result(confidence: float) -> TriageResult:
@@ -180,7 +179,7 @@ def test_classify_with_llm_recovers_after_malformed_then_valid():
     with patch(
         "app.services.llm_classifier.call_llm",
         side_effect=[MARKDOWN_WRAPPED_RESPONSE, VALID_RESPONSE],
-    ) as mock_call:
+    ):
         outcome = classify_with_llm("My scholarship has not been reviewed.")
 
         assert outcome.attempts_used == 2
@@ -195,7 +194,7 @@ def test_classify_with_llm_recovers_after_validation_error_then_valid():
     with patch(
         "app.services.llm_classifier.call_llm",
         side_effect=[MISSING_FIELD_RESPONSE, VALID_RESPONSE_DOCUMENT_REQUEST],
-    ) as mock_call:
+    ):
         outcome = classify_with_llm("Where do I submit this document?")
 
     assert outcome.attempts_used == 2
@@ -305,3 +304,83 @@ def test_routing_retry_forces_needs_review_despite_high_confidence():
     result = _make_triage_result(confidence=0.95)
     status = determine_review_status(result, llm_attempts_used=2)
     assert status == "needs_review"
+
+
+# ---------------------------------------------------------------------------
+# STEP 17 - Live pipeline structural check (mocked)
+# ---------------------------------------------------------------------------
+"""
+Step 17 test skeleton -- append this function to tests/test_pipeline.py.
+
+Uses an in-memory SQLite DB (sqlite:///:memory:) so this test never
+touches your real civicinbox.db file and leaves no artifact behind.
+
+Fill in the assertions marked TODO yourself -- this is the "predict
+before running" step. Before you fill them in, answer for yourself:
+after `session.commit()`, what do you expect `fetched.id` to be? What
+do you expect `fetched.created_at` to be, given you never set it?
+"""
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.models.db_models import Base, Prediction, Request, ReviewerCorrection
+
+
+def test_db_schema():
+    # In-memory engine: exists only for the lifetime of this test.
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)  # creates all three tables
+
+    SessionLocal = sessionmaker(bind=engine)
+    session = SessionLocal()
+
+    # --- Insert one Request ---
+    req = Request(message_text="My scholarship application has not been reviewed.")
+    session.add(req)
+    session.commit()
+
+    # TODO: assert req.id is not None
+    # TODO: assert req.created_at is not None
+
+    # --- Insert one Prediction tied to that Request ---
+    pred = Prediction(
+        request_id=req.id,
+        model_type="baseline",
+        category="academic_records",
+        urgency="medium",
+        requested_action="Follow up on scholarship review status",
+        draft_response="Thank you for reaching out...",
+        confidence=0.82,
+        attempts_used=None,
+        status="auto_approved",
+    )
+    session.add(pred)
+    session.commit()
+
+    # TODO: assert pred.id is not None
+    # TODO: assert pred.request_id == req.id
+
+    # --- Insert one ReviewerCorrection tied to that Prediction ---
+    correction = ReviewerCorrection(
+        prediction_id=pred.id,
+        corrected_category="document_request",
+        reviewer_notes="Miscategorized -- this is a document request, not academic records.",
+    )
+    session.add(correction)
+    session.commit()
+
+    # TODO: assert correction.id is not None
+    # TODO: assert correction.prediction_id == pred.id
+
+    # --- Read back and verify values round-trip correctly ---
+    session.get(Request, req.id)
+    session.get(Prediction, pred.id)
+    session.get(ReviewerCorrection, correction.id)
+
+    # TODO: assert fetched_req.message_text == "My scholarship application has not been reviewed."
+    # TODO: assert fetched_pred.category == "academic_records"
+    # TODO: assert fetched_pred.confidence == 0.82
+    # TODO: assert fetched_correction.corrected_category == "document_request"
+
+    session.close()
