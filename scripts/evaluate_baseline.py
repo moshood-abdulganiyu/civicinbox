@@ -13,7 +13,7 @@ behavior — check train_baseline.py before trusting these numbers.
 """
 
 import json
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 
 import joblib
@@ -54,7 +54,7 @@ def main():
             )
 
     output = {
-        "date": str(date.today()),
+        "date": str(datetime.now(UTC).date()),
         "model": "tfidf_logreg_baseline",
         "n_test_examples": len(y_test),
         "macro_f1": macro_f1,

@@ -15,6 +15,7 @@ dependencies = [
     "openai>=1.0.0",
     "python-dotenv>=1.0.0",
     "sqlalchemy>=2.0.52",
+    "streamlit>=1.64.0",
 ]
 
 [project.optional-dependencies]

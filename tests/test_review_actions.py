@@ -27,15 +27,16 @@ def make_prediction(db_session, **overrides):
     db_session.commit()
     db_session.refresh(request)
 
-    defaults = dict(
-        request_id=request.id,
-        model_type="llm",
-        category="financial_aid",
-        urgency="medium",
-        requested_action="check status",
-        draft_response="draft",
-        status="needs_review",
-    )
+    defaults = {
+        "request_id": request.id,
+        "model_type": "llm",
+        "category": "financial_aid",
+        "urgency": "medium",
+        "requested_action": "check status",
+        "draft_response": "draft",
+        "status": "needs_review",
+    }
+
     defaults.update(overrides)
     prediction = Prediction(**defaults)
     db_session.add(prediction)

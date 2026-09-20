@@ -1,6 +1,6 @@
 from typing import Literal
 
-from app.models.schema import TriageResult  
+from app.models.schema import TriageResult
 
 # Placeholder pending Step 16's full-dataset baseline-vs-LLM comparison.
 # Spot check (n=5) showed LLM confidence sitting in 0.85-0.95 regardless of

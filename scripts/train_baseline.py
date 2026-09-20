@@ -23,10 +23,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 
-
 # Make app/ importable when running this script directly from repo root
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from app.core.preprocessing import normalize_text  # noqa: E402
+from app.core.preprocessing import normalize_text
 
 DATA_PATH = Path("data/labeled_messages.jsonl")
 MODEL_DIR = Path("data/models")
@@ -107,7 +106,7 @@ def main() -> None:
     # that the saved model can make a valid prediction at all.
     sample_text, sample_true_label = X_test[0], y_test[0]
     sample_pred = pipeline.predict([sample_text])[0]
-    print(f"\nSmoke test — held-out example:")
+    print("\nSmoke test — held-out example:")
     print(f"  True category:      {sample_true_label}")
     print(f"  Predicted category: {sample_pred}")
 

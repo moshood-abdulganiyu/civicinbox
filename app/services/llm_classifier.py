@@ -34,6 +34,7 @@ SCHEMA_INSTRUCTIONS = """Return ONLY a JSON object with exactly these fields, no
 
 Category selection rule: if the message explicitly asks to escalate, file a complaint, or expresses frustration about an unresolved delay, classify as "complaint_escalation" even if the underlying subject is a document, registration, or academic matter."""
 
+
 def build_prompt(message: str) -> str:
     return f"""Classify the following message from a university student affairs/registrar inbox.
 
@@ -76,7 +77,9 @@ def classify_with_llm(message: str, max_attempts: int = 3) -> LLMClassificationO
             # timeout, connection error, rate limit, a 5xx from OpenAI's
             # side, etc. Worth spending one of our max_attempts on.
             last_error = e
-            logger.warning(f"LLM classify attempt {attempt}/{max_attempts} — API error: {e}")
+            logger.warning(
+                f"LLM classify attempt {attempt}/{max_attempts} — API error: {e}"
+            )
             continue
 
         try:
@@ -85,7 +88,9 @@ def classify_with_llm(message: str, max_attempts: int = 3) -> LLMClassificationO
             return LLMClassificationOutcome(result=result, attempts_used=attempt)
         except (json.JSONDecodeError, ValidationError) as e:
             last_error = e
-            logger.warning(f"LLM classify attempt {attempt}/{max_attempts} — invalid output: {e}")
+            logger.warning(
+                f"LLM classify attempt {attempt}/{max_attempts} — invalid output: {e}"
+            )
             prompt = build_repair_prompt(message, raw, e)
 
     logger.error(

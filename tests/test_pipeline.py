@@ -267,7 +267,9 @@ def test_classify_with_llm_all_fields_non_null():
     )
 
     with patch("app.services.llm_classifier.call_llm", return_value=valid_response):
-        outcome = classify_with_llm("What are the office hours for the registrar this week?")
+        outcome = classify_with_llm(
+            "What are the office hours for the registrar this week?"
+        )
 
     assert outcome.attempts_used == 1
 
@@ -373,10 +375,53 @@ def test_db_schema():
     fetched_pred = session.get(Prediction, pred.id)
     fetched_correction = session.get(ReviewerCorrection, correction.id)
 
-    assert fetched_req.message_text == "My scholarship application has not been reviewed."
+    assert (
+        fetched_req.message_text == "My scholarship application has not been reviewed."
+    )
     assert fetched_pred.category == "academic_records"
     assert fetched_pred.confidence == 0.82
     assert fetched_correction.corrected_category == "document_request"
 
     session.close()
     engine.dispose()
+
+
+from openai import APITimeoutError
+
+
+def test_classify_retries_on_openai_error_then_succeeds():
+    valid_json = '{"category": "financial_aid", "urgency": "low", "requested_action": "check status", "entities": {}, "missing_information": [], "draft_response": "draft", "confidence": 0.8}'
+    with patch(
+        "app.services.llm_classifier.call_llm",
+        side_effect=[APITimeoutError(request=None), valid_json],
+    ):
+        outcome = classify_with_llm("test message", max_attempts=3)
+    assert outcome.attempts_used == 2
+
+
+def test_classify_raises_after_max_attempts_on_persistent_openai_error():
+    with (
+        patch(
+            "app.services.llm_classifier.call_llm",
+            side_effect=APITimeoutError(request=None),
+        ),
+        pytest.raises(LLMClassificationFailed),
+    ):
+        classify_with_llm("test message", max_attempts=3)
+
+
+def test_classify_fails_fast_on_missing_api_key_no_retries():
+    call_count = 0
+
+    def raise_runtime_error(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        raise RuntimeError("OPENAI_API_KEY is not set")
+
+    with (
+        patch("app.services.llm_classifier.call_llm", side_effect=raise_runtime_error),
+        pytest.raises(LLMClassificationFailed),
+    ):
+        classify_with_llm("test message", max_attempts=3)
+
+    assert call_count == 1  # did not retry

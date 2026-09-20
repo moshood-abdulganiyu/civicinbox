@@ -27,10 +27,12 @@ def approve_prediction(db: Session, prediction_id: int) -> Prediction:
     if prediction is None:
         raise ValueError(f"No prediction with id={prediction_id}")
 
-    db.add(ReviewerCorrection(
-        prediction_id=prediction_id,
-        reviewer_notes="Approved as-is.",
-    ))
+    db.add(
+        ReviewerCorrection(
+            prediction_id=prediction_id,
+            reviewer_notes="Approved as-is.",
+        )
+    )
     prediction.status = "reviewer_approved"
     db.commit()
     db.refresh(prediction)
@@ -54,13 +56,15 @@ def edit_prediction(
     if not any([corrected_category, corrected_urgency, corrected_action]):
         raise ValueError("edit_prediction called with no corrected fields")
 
-    db.add(ReviewerCorrection(
-        prediction_id=prediction_id,
-        corrected_category=corrected_category,
-        corrected_urgency=corrected_urgency,
-        corrected_action=corrected_action,
-        reviewer_notes=reviewer_notes,
-    ))
+    db.add(
+        ReviewerCorrection(
+            prediction_id=prediction_id,
+            corrected_category=corrected_category,
+            corrected_urgency=corrected_urgency,
+            corrected_action=corrected_action,
+            reviewer_notes=reviewer_notes,
+        )
+    )
     prediction.status = "reviewer_approved"
     db.commit()
     db.refresh(prediction)
@@ -75,10 +79,12 @@ def reject_prediction(
     if prediction is None:
         raise ValueError(f"No prediction with id={prediction_id}")
 
-    db.add(ReviewerCorrection(
-        prediction_id=prediction_id,
-        reviewer_notes=reviewer_notes or "Rejected.",
-    ))
+    db.add(
+        ReviewerCorrection(
+            prediction_id=prediction_id,
+            reviewer_notes=reviewer_notes or "Rejected.",
+        )
+    )
     prediction.status = "rejected"
     db.commit()
     db.refresh(prediction)

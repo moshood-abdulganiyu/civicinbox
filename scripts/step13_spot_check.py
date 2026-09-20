@@ -59,7 +59,9 @@ def main() -> None:
         print("=" * 70)
         print(sample["label"])
         print(f"Message: {sample['message']}")
-        print(f"Ground truth: category={sample['true_category']}, urgency={sample['true_urgency']}")
+        print(
+            f"Ground truth: category={sample['true_category']}, urgency={sample['true_urgency']}"
+        )
         print("-" * 70)
 
         try:

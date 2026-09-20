@@ -62,7 +62,9 @@ def run_baseline(test_records: list[dict]) -> dict:
         "macro_f1": report["macro avg"]["f1-score"],
         "accuracy": report["accuracy"],
         "per_class": {
-            k: v for k, v in report.items() if k not in ("accuracy", "macro avg", "weighted avg")
+            k: v
+            for k, v in report.items()
+            if k not in ("accuracy", "macro avg", "weighted avg")
         },
     }
 
@@ -80,7 +82,9 @@ def run_llm(test_records: list[dict], sample: int | None) -> dict:
             outcome = classify_with_llm(r["text"])
         except LLMClassificationFailed:
             n_failed += 1
-            n_needs_review += 1  # a failure is a de facto review case, not auto-approvable
+            n_needs_review += (
+                1  # a failure is a de facto review case, not auto-approvable
+            )
             continue
 
         status = determine_review_status(outcome.result, outcome.attempts_used)
@@ -131,7 +135,9 @@ def main():
     today = datetime.now(tz=UTC).date()
     records = load_records()
     test_records = get_test_split(records)
-    print(f"Test split: {len(test_records)} messages (of {len(records)} total, 20% held out)")
+    print(
+        f"Test split: {len(test_records)} messages (of {len(records)} total, 20% held out)"
+    )
 
     print("\nRunning baseline (no API cost)...")
     baseline_results = run_baseline(test_records)

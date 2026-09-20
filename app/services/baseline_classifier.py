@@ -34,6 +34,7 @@ def _get_pipeline():
         _pipeline = joblib.load(MODEL_PATH)
     return _pipeline
 
+
 from app.models.schema import BaselinePrediction
 
 

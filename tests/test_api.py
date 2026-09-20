@@ -42,12 +42,15 @@ def isolated_db():
     engine.dispose()
 
 
-def test_empty_message_returns_422():
+def test_empty_message_baseline_returns_422():
     response = client.post("/classify/baseline", json={"message": ""})
     assert response.status_code == 422
 
+
+def test_empty_message_llm_returns_422():
     response = client.post("/classify/llm", json={"message": ""})
     assert response.status_code == 422
+
 
 def test_health():
     response = client.get("/health")
@@ -77,14 +80,6 @@ def test_classify_baseline():
     }
     assert 0.0 <= body["confidence"] <= 1.0
 
-
-def test_empty_message_returns_422():
-    response = client.post("/classify/baseline", json={"message": ""})
-    assert response.status_code == 422
-
-    response = client.post("/classify/llm", json={"message": ""})
-    assert response.status_code == 422
-    
 
 from app.models.schema import Entities, TriageResult
 from app.services.llm_classifier import (
@@ -142,8 +137,6 @@ def test_classify_llm_failure_returns_503(monkeypatch):
     assert "input_value" not in detail
 
 
-
-
 from app.main import app
 
 
@@ -191,4 +184,4 @@ def test_classify_llm_persists_to_db(monkeypatch, isolated_db):
         assert db_prediction.attempts_used == 1
         assert db_prediction.status == body["status"]
     finally:
-        check_session.close() 
+        check_session.close()

@@ -40,6 +40,7 @@ class TriageResult(BaseModel):
     draft_response: str = Field(..., min_length=1)
     confidence: float = Field(..., ge=0.0, le=1.0)
 
+
 # ------------------------------
 # STEP 10
 # ------------------------------
@@ -93,7 +94,8 @@ class BaselineClassification(BaselinePrediction):
 
     request_id: int
     prediction_id: int
-    
+
+
 from typing import Literal
 
 ReviewStatus = Literal["auto_approved", "needs_review"]

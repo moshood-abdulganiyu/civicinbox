@@ -16,9 +16,11 @@ import streamlit as st
 
 from app.models.db import SessionLocal
 from app.models.db_models import Prediction, Request
-
-from app.services.review_actions import approve_prediction, edit_prediction, reject_prediction
-
+from app.services.review_actions import (
+    approve_prediction,
+    edit_prediction,
+    reject_prediction,
+)
 
 st.set_page_config(page_title="CivicInbox Review", layout="wide")
 st.title("CivicInbox — Review Queue")
@@ -55,7 +57,9 @@ def handle_edit(prediction_id: int, **fields) -> None:
         db.close()
 
 
-def load_requests_with_predictions() -> list[tuple[Request, dict[str, Prediction | None]]]:
+def load_requests_with_predictions() -> list[
+    tuple[Request, dict[str, Prediction | None]]
+]:
     """
     Two flat queries + a Python groupby, deliberately not a JOIN.
 
@@ -72,9 +76,7 @@ def load_requests_with_predictions() -> list[tuple[Request, dict[str, Prediction
         request_ids = [r.id for r in requests]
 
         predictions = (
-            db.query(Prediction)
-            .filter(Prediction.request_id.in_(request_ids))
-            .all()
+            db.query(Prediction).filter(Prediction.request_id.in_(request_ids)).all()
         )
 
         # Keyed by model_type ("baseline"/"llm") rather than a plain list,
@@ -102,7 +104,9 @@ def render_prediction_column(label: str, pred: Prediction | None) -> None:
     st.write(f"Urgency: `{pred.urgency}`")
     st.write(f"Requested action: {pred.requested_action}")
     st.write(
-        f"Confidence: {pred.confidence:.2f}" if pred.confidence is not None else "Confidence: n/a"
+        f"Confidence: {pred.confidence:.2f}"
+        if pred.confidence is not None
+        else "Confidence: n/a"
     )
 
     icon = STATUS_ICONS.get(pred.status, "⚪")
@@ -151,7 +155,6 @@ def render_prediction_column(label: str, pred: Prediction | None) -> None:
                 )
                 st.session_state[edit_key] = False
                 st.rerun()
-
 
 
 rows = load_requests_with_predictions()
