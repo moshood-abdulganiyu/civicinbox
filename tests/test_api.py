@@ -60,8 +60,7 @@ def test_health():
 
 def test_classify_baseline():
     """Requires data/models/baseline.joblib to already exist locally
-    (run scripts/train_baseline.py first) — same precondition as
-    test_baseline_eval_runs. Not yet handled in CI; flagged for Step 23.
+    (run scripts/train_baseline.py first)
     """
     response = client.post(
         "/classify/baseline",
