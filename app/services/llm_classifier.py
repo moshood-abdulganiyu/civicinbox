@@ -1,6 +1,7 @@
 import json
 import logging
 
+from openai import OpenAIError
 from pydantic import BaseModel, ValidationError
 
 from app.models.schema import TriageResult
@@ -9,22 +10,12 @@ from app.services.llm_client import call_llm
 logger = logging.getLogger(__name__)
 
 
-
 class LLMClassificationOutcome(BaseModel):
-    """Wraps a successful LLM classification with retry metadata.
-
-    attempts_used lets callers (routing logic, logging, eval scripts)
-    distinguish a first-try success from one that needed repair prompts,
-    without threading a bare int through call sites.
-    """
     result: TriageResult
     attempts_used: int
 
 
 class LLMClassificationFailed(Exception):
-    """Raised when the LLM fails to produce a schema-valid TriageResult
-    after all retry attempts are exhausted."""
-
     def __init__(self, message: str, last_error: Exception | None = None):
         super().__init__(message)
         self.last_error = last_error
@@ -64,22 +55,37 @@ Message: \"\"\"{message}\"\"\"
 {SCHEMA_INSTRUCTIONS}"""
 
 
-############################
-# STEP 14
-############################
 def classify_with_llm(message: str, max_attempts: int = 3) -> LLMClassificationOutcome:
     prompt = build_prompt(message)
     last_error: Exception | None = None
 
     for attempt in range(1, max_attempts + 1):
-        raw = call_llm(prompt)
+        try:
+            raw = call_llm(prompt)
+        except RuntimeError as e:
+            # Missing/misconfigured API key -- a local config problem, not
+            # a transient failure. Retrying won't fix it and would only
+            # waste attempts (and, once a key IS present, real API cost)
+            # on a call that's guaranteed to fail every time. Fail fast.
+            logger.error(f"LLM client misconfigured, not retrying: {e}")
+            raise LLMClassificationFailed(
+                f"LLM client configuration error: {e}", last_error=e
+            ) from e
+        except OpenAIError as e:
+            # Transient (or at least retry-worth-trying) failures: network
+            # timeout, connection error, rate limit, a 5xx from OpenAI's
+            # side, etc. Worth spending one of our max_attempts on.
+            last_error = e
+            logger.warning(f"LLM classify attempt {attempt}/{max_attempts} — API error: {e}")
+            continue
+
         try:
             data = json.loads(raw)
             result = TriageResult.model_validate(data)
             return LLMClassificationOutcome(result=result, attempts_used=attempt)
         except (json.JSONDecodeError, ValidationError) as e:
             last_error = e
-            logger.warning(f"LLM classify attempt {attempt}/{max_attempts} failed: {e}")
+            logger.warning(f"LLM classify attempt {attempt}/{max_attempts} — invalid output: {e}")
             prompt = build_repair_prompt(message, raw, e)
 
     logger.error(
@@ -89,4 +95,3 @@ def classify_with_llm(message: str, max_attempts: int = 3) -> LLMClassificationO
         f"Failed after {max_attempts} attempts: {type(last_error).__name__}",
         last_error=last_error,
     )
-

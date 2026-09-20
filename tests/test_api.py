@@ -42,6 +42,13 @@ def isolated_db():
     engine.dispose()
 
 
+def test_empty_message_returns_422():
+    response = client.post("/classify/baseline", json={"message": ""})
+    assert response.status_code == 422
+
+    response = client.post("/classify/llm", json={"message": ""})
+    assert response.status_code == 422
+
 def test_health():
     response = client.get("/health")
     assert response.status_code == 200
@@ -70,6 +77,14 @@ def test_classify_baseline():
     }
     assert 0.0 <= body["confidence"] <= 1.0
 
+
+def test_empty_message_returns_422():
+    response = client.post("/classify/baseline", json={"message": ""})
+    assert response.status_code == 422
+
+    response = client.post("/classify/llm", json={"message": ""})
+    assert response.status_code == 422
+    
 
 from app.models.schema import Entities, TriageResult
 from app.services.llm_classifier import (
