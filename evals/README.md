@@ -31,7 +31,7 @@ Weakest class: `academic_records` (F1 0.645), consistent with the original Step 
 
 ## 3. LLM: Structured Classification (OpenAI, `temperature=0`)
 
-**Macro-F1: 0.679 (mean of 5 runs)** | This run: 0.682, accuracy 0.711
+**Macro-F1: 0.684 (mean of 5 runs, post `temperature=0` fix)** | Individual runs: 0.693, 0.703, 0.650, 0.692, 0.682 — per-category table below is from the 0.682 run
 
 | Category | Precision | Recall | F1 | Support |
 |---|---:|---:|---:|---:|
@@ -47,18 +47,22 @@ Invalid-JSON rate: 0.00% | Routed to review: 0.0% | Auto-approved: 90/90
 By far the LLM's weakest class: `academic_records` (F1 0.235 — the single largest driver of the macro-F1 gap vs. the baseline).
 
 
+
+
 ### Run-to-run variance (transparency note)
 
-Five repeated runs on the identical held-out split, with `temperature=0` explicitly set, produced macro-F1 values ranging 0.669–0.692 (spread 0.023). This is consistent with OpenAI's documented behavior: `temperature=0` reduces but does not eliminate output variance, due to floating-point non-associativity in their inference infrastructure. It is not a defect in this codebase's classification or retry logic. An earlier single-run measurement (Step 16, pre-Step-3 failure-path changes) recorded 0.724; given the now-confirmed variance, that figure is directional and superseded by the 5-run mean above, not treated as a fixed baseline.
+An earlier version of this report claimed `temperature=0` was already active in `llm_client.py` during measurement; it was not — the code did not set it. This was corrected afterward. Re-running 5x on the identical held-out split with `temperature=0` genuinely in effect produced macro-F1 values ranging 0.650–0.703 (spread 0.053) — comparable to, and slightly wider than, the original (uncorrected) 5-run spread of 0.023. This rules out "temperature was unset" as the source of the earlier variance and is consistent with OpenAI's documented behavior: `temperature=0` reduces but does not eliminate output variance, due to floating-point non-associativity in their inference infrastructure. It is not a defect in this codebase's classification or retry logic. An earlier single-run measurement (Step 16) recorded 0.724 and is superseded by the 5-run mean above.
 
 ## 4. Comparison
 
 | Metric | Baseline (TF-IDF + LogReg) | LLM (structured, temp=0) |
 |---|---:|---:|
-| Macro-F1 | **0.8349** | 0.679 (mean of 5) |
+| Macro-F1 | **0.8349** | 0.684 (mean of 5) |
 | Invalid output rate | n/a | 0.00% |
 | % routed to human review | 0% (never gates) | 0.0–1.1% |
 | Per-request cost | ~$0 | real API cost per call |
+
+
 
 **The baseline outperforms the LLM by roughly 15 points of macro-F1 on this dataset**, holding across every repeated LLM run. This is the central finding: assuming an LLM is automatically better than a simple, interpretable, free baseline is not supported by the evidence here.
 
@@ -77,6 +81,6 @@ Five repeated runs on the identical held-out split, with `temperature=0` explici
 
 - Dataset composition (150 LLM-drafted / 300 user-authored) may inflate both models' scores relative to fully organic messages
 - Urgency and category are confounded in this dataset; urgency-extraction quality is not independently validated here
-- LLM evaluation numbers reflect `temperature=0` but are not bit-reproducible run-to-run due to OpenAI API-level non-determinism; report uses a 5-run mean rather than a single measurement
+- LLM evaluation numbers reflect `temperature=0` (confirmed active as of this re-run) but are not bit-reproducible run-to-run due to OpenAI API-level non-determinism; report uses a 5-run mean, with per-category detail from one representative run rather than a single measurement
 - Baseline predictions leave `urgency`, `requested_action`, and `draft_response` empty (non-nullable schema fields the baseline cannot populate) — this affects any full-field-completeness comparison, though it does not affect the macro-F1 category-classification numbers above
 - Confidence score is not a reliable routing signal on its own (clusters 0.85–0.95 regardless of correctness); `attempts_used` is used as a secondary signal in routing logic instead
