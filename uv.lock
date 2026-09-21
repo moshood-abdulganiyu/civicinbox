@@ -237,7 +237,6 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "scikit-learn" },
     { name = "sqlalchemy" },
-    { name = "streamlit" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -246,6 +245,9 @@ dev = [
     { name = "httpx" },
     { name = "pytest" },
     { name = "ruff" },
+]
+ui = [
+    { name = "streamlit" },
 ]
 
 [package.dev-dependencies]
@@ -265,10 +267,10 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "scikit-learn", specifier = ">=1.9.0" },
     { name = "sqlalchemy", specifier = ">=2.0.52" },
-    { name = "streamlit", specifier = ">=1.64.0" },
+    { name = "streamlit", marker = "extra == 'ui'", specifier = ">=1.64.0" },
     { name = "uvicorn", extras = ["standard"] },
 ]
-provides-extras = ["dev"]
+provides-extras = ["dev", "ui"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest-cov", specifier = ">=7.1.0" }]
