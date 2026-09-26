@@ -145,3 +145,64 @@ Test suite:
 ```powershell
 uv run pytest --cov=app
 ```
+
+
+### Deployment
+
+**Backend:** FastAPI deployed on Render (free tier) at https://civicinbox.onrender.com
+**Database:** Supabase PostgreSQL (free tier), replacing local SQLite for production
+**Frontend:** Streamlit review UI — not yet deployed (in progress)
+
+Environment variables required: `DATABASE_URL` (Postgres connection string), `OPENAI_API_KEY`. Set as Render environment variables for the backend; local development falls back to SQLite automatically if `DATABASE_URL` is unset.
+
+**Known limitation:** Render's free tier spins down after inactivity — the first request after idle time may take 30–60 seconds to respond while the instance cold-starts.
+
+
+### Results
+
+On a 450-message labeled test set spanning 6 categories, the TF-IDF + LogisticRegression baseline achieved 0.835 macro-F1, outperforming the OpenAI-backed structured classifier's 0.679 macro-F1 (mean of 5 repeated runs, range 0.669–0.692) by roughly 15 points — a gap that held consistently across every repeated run, not a one-off result.
+
+The LLM's weakest class was `academic_records`, with 13 of 15 true `academic_records` messages in the most recent run misrouted to `complaint_escalation` (precision 1.0, recall 0.133 for that class). None of these misroutes were caught by confidence-based review routing — the LLM's output was schema-valid and confidently wrong in every case, so 0% were flagged `needs_review`. This is a taxonomy-boundary ambiguity between the two categories, not a parsing or prompting defect.
+
+Retry-on-invalid-JSON logic worked as designed: across the full eval run, invalid-JSON rate after retry was 0%, with at least one documented case (`msg_376`, detailed in `evals/README.md`) where the first LLM response was malformed and the retry recovered a valid, schema-conformant result.
+
+
+### Key Learnings
+
+- The baseline was not a formality — it won. Assuming an LLM would outperform a simple TF-IDF + LogisticRegression classifier here would have been wrong by ~15 macro-F1 points, and that assumption would only have surfaced after deployment, without a baseline to compare against.
+- Confidence-based routing is not the same as correctness-based routing. The LLM's dominant failure mode (`academic_records` → `complaint_escalation`) was invisible to the review-routing logic entirely, because the model was schema-valid and confident while being wrong — a gap only a labeled eval set against ground truth could reveal.
+- A single eval run is not enough for an API-backed model. Macro-F1 varied by up to ~2.3 points (0.669–0.692) across 5 identical runs at `temperature=0`, traced to OpenAI API-level non-determinism rather than a code defect. Reporting a single run's number would have overstated precision that doesn't exist.
+- Keeping reviewer corrections in a separate table from original predictions, rather than overwriting, was a small schema decision made early (Step 17) that paid off later — it preserves exactly the labeled-correction data an active-learning retraining loop needs, without requiring a schema migration to add it after the fact.
+- Splitting `streamlit` into an optional dependency group after the fact (rather than from the start) was avoidable rework — a Docker-only-serves-FastAPI decision made at Step 24 should have been reflected in `pyproject.toml` at the same time, not left as backlog discovered later.
+
+
+
+### Limitations and Responsible Use
+
+- This system must not be used to auto-send responses without human review. Every prediction — from either model — requires explicit approval, edit, or rejection before any reply is sent; nothing in this pipeline sends messages on its own.
+- The LLM classifier's `academic_records` vs. `complaint_escalation` confusion (documented above) is a known, unresolved taxonomy ambiguity — not a bug scheduled for a quick fix. Deployments handling real academic-records requests should expect this failure mode and weight the baseline's judgment accordingly, or treat that category pair as needing mandatory human review regardless of confidence score.
+- The labeled dataset (450 messages) is a mix of LLM-drafted and user-authored examples, not exclusively real-world messages; performance on genuinely novel, messier real-world text may differ from these eval numbers. Full dataset composition is disclosed in `evals/README.md`.
+- The review-routing confidence threshold (`LLM_CONFIDENCE_THRESHOLD_PLACEHOLDER = 0.5`) is currently uncalibrated — it was not tuned against the eval set to find an operating point that actually catches more errors. Treat routing decisions as a starting point, not a validated threshold.
+- This is a prototype triage aid for small organizations, not a compliance or legal decision system. It should not be used for requests with legal, medical, or safety implications without additional review layers beyond what's built here.
+
+
+
+### Future Improvements
+
+- Calibrate the `LLM_CONFIDENCE_THRESHOLD_PLACEHOLDER` against the eval set rather than leaving it at an arbitrary 0.5.
+- Investigate whether a taxonomy redefinition (e.g. explicit disambiguation examples in the category description, or merging/splitting `academic_records`/`complaint_escalation`) reduces the LLM's dominant confusion, and re-run the eval to check.
+- Implement the active-learning loop: retrain the baseline on `reviewer_corrections` data and compare pre/post macro-F1 (Step 30, currently optional/stretch).
+- Deploy to Render/Railway (backend) and Streamlit Community Cloud (UI) per the project's zero-cost stack plan (Step 28).
+- Close the remaining line-level coverage gaps (`llm_client.py`, `db.py`, `main.py` error paths) noted in the eval/test backlog.
+- Investigate the `ResourceWarning: unclosed database` in `test_review_actions.py`'s fixture cleanup — currently assumed test-scoped, not yet root-caused.
+
+
+
+### Project Status
+
+- [x] Core pipeline (baseline + LLM classification, routing, persistence)
+- [x] Evaluation set (450 labeled messages, baseline vs. LLM comparison)
+- [x] Tests (34 passed, 92% coverage)
+- [x] Docker deployment (image builds, CI-gated health smoke test)
+- [ ] Live demo (Render/Railway + Streamlit Community Cloud — not yet deployed)
+- [ ] Stretch feature (active-learning retraining loop)
