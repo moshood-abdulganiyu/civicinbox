@@ -1,5 +1,5 @@
 """
-Step 16 — Baseline vs LLM comparison.
+Baseline vs LLM comparison.
 
 Reuses the EXACT test split from scripts/train_baseline.py (same RANDOM_STATE=42,
 test_size=0.2, stratify=labels) so both models are evaluated on the same held-out
