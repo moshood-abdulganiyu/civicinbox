@@ -2,7 +2,7 @@
 
 AI-assisted request-triage system that classifies incoming messages, extracts structured details, and drafts reviewable responses for small organizations.
 
-[![CI](https://github.com/moshood-abdulganiyu/civicinbox/workflows/ci.yml/badge.svg)](https://github.com/moshood-abdulganiyu/civicinbox/workflows/ci.yml)
+[![CI](https://github.com/moshood-abdulganiyu/civicinbox/actions/workflows/ci.yml/badge.svg)](https://github.com/moshood-abdulganiyu/civicinbox/actions/workflows/ci.yml)
 [![Live Demo](https://img.shields.io/badge/live-demo-available-brightgreen)](https://civicinbox-t2sh7xffbjnwo2ssmeceba.streamlit.app/)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
