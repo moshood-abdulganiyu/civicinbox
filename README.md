@@ -13,7 +13,7 @@ AI-assisted request-triage system that classifies incoming messages, extracts st
 - Demo video: [Watch the walkthrough](https://youtu.be/VIDEO_ID) — Swagger submission → review screen → approve/edit/reject → persistence check
 - API documentation: [OpenAPI docs](https://civicinbox.onrender.com/docs)
 
-[![CivicInbox demo](https://img.youtube.com/vi/VIDEO_ID/0.jpg)](https://youtu.be/VIDEO_ID)
+[![CivicInbox demo](https://img.youtube.com/vi/0qJS7u9Jb6I/0.jpg)](https://youtu.be/0qJS7u9Jb6I)
 
 Uses synthetic/seeded demo data only — no real requester information.
 
