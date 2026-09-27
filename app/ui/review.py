@@ -2,12 +2,15 @@
 Read-only Streamlit review screen for CivicInbox.
 
 Pulls every Request and its Predictions (baseline and/or LLM) and
-renders them side by side so a reviewer can compare the two models'
-output for the same inbound message.
+renders them as glass cards in a 3-column grid, so a reviewer can scan
+several requests at once and scroll for more.
 
-Read-only: Step 2 of the finish plan (old Step 20) adds the
-approve/edit/reject actions that write to reviewer_corrections. This
-screen only queries and displays.
+Styling/layout: glass-card panels (blur + transparency), color-coded
+review actions (green/yellow/red), 3-per-row grid, compact message
+preview with a "show full" expander to keep card heights consistent --
+added in the demo-polish pass. Functionally unchanged from the
+original approve/edit/reject screen: reviewer_actions.py still owns
+all the write logic; this file only changed presentation.
 """
 
 from collections import defaultdict
@@ -28,7 +31,9 @@ from app.services.review_actions import (
 )
 
 st.set_page_config(page_title="CivicInbox Review", layout="wide")
-st.title("CivicInbox — Review Queue")
+
+GRID_COLUMNS = 3
+MESSAGE_PREVIEW_CHARS = 110
 
 STATUS_ICONS = {
     "auto_approved": "🟢",
@@ -36,6 +41,90 @@ STATUS_ICONS = {
     "reviewer_approved": "✅",
     "rejected": "🔴",
 }
+
+# ---------------------------------------------------------------------------
+# Styling
+#
+# Streamlit's own DOM structure (data-testid names, the "st-key-<key>"
+# class it adds to a widget's wrapper when you pass key=...) is an
+# internal implementation detail that can shift between versions. If
+# the button colors or card glass effect don't render after upgrading
+# Streamlit, use your browser's inspector on a button/container to find
+# the current selector and adjust the block below -- the logic (approve/
+# edit/reject) is untouched either way, only presentation would break.
+# ---------------------------------------------------------------------------
+st.markdown(
+    """
+    <style>
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #1e1b4b 100%);
+    }
+
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background: rgba(255, 255, 255, 0.06) !important;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 18px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+        padding: 0.75rem !important;
+    }
+
+    .model-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin: 0.4rem 0 0.3rem 0;
+    }
+    .model-badge .icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.4rem;
+        height: 1.4rem;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        font-size: 0.8rem;
+    }
+    .model-divider {
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+        margin: 0.5rem 0;
+    }
+    .field-line {
+        font-size: 0.85rem;
+        margin: 0.1rem 0;
+    }
+
+    div[class*="st-key-approve_btn_"] button {
+        background-color: #22c55e !important;
+        color: #ffffff !important;
+        border: none !important;
+    }
+    div[class*="st-key-edit_btn_"] button {
+        background-color: #eab308 !important;
+        color: #1f2937 !important;
+        border: none !important;
+    }
+    div[class*="st-key-reject_btn_"] button {
+        background-color: #ef4444 !important;
+        color: #ffffff !important;
+        border: none !important;
+    }
+    div[class*="st-key-approve_btn_"] button:hover,
+    div[class*="st-key-edit_btn_"] button:hover,
+    div[class*="st-key-reject_btn_"] button:hover {
+        filter: brightness(1.1);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.title("CivicInbox — Review Queue")
 
 
 def handle_approve(prediction_id: int) -> None:
@@ -84,10 +173,6 @@ def load_requests_with_predictions() -> list[
             db.query(Prediction).filter(Prediction.request_id.in_(request_ids)).all()
         )
 
-        # Keyed by model_type ("baseline"/"llm") rather than a plain list,
-        # since there are only ever these two possible predictions per
-        # request -- this makes the side-by-side render a direct dict
-        # lookup instead of a scan.
         by_request: dict[int, dict[str, Prediction | None]] = defaultdict(
             lambda: {"baseline": None, "llm": None}
         )
@@ -99,30 +184,34 @@ def load_requests_with_predictions() -> list[
         db.close()
 
 
-def render_prediction_column(label: str, pred: Prediction | None) -> None:
-    st.markdown(f"**{label}**")
+def render_prediction_block(label: str, icon: str, pred: Prediction | None) -> None:
+    st.markdown(
+        f'<div class="model-badge"><span class="icon">{icon}</span>{label}</div>',
+        unsafe_allow_html=True,
+    )
     if pred is None:
         st.caption("No prediction yet.")
         return
 
-    st.write(f"Category: `{pred.category}`")
-    st.write(f"Urgency: `{pred.urgency}`")
-    st.write(f"Requested action: {pred.requested_action}")
-    st.write(
-        f"Confidence: {pred.confidence:.2f}"
-        if pred.confidence is not None
-        else "Confidence: n/a"
-    )
+    st.markdown(f"<div class='field-line'>Category: <code>{pred.category}</code></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='field-line'>Urgency: <code>{pred.urgency}</code></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='field-line'>Action: {pred.requested_action}</div>", unsafe_allow_html=True)
+    confidence_text = f"{pred.confidence:.2f}" if pred.confidence is not None else "n/a"
+    st.markdown(f"<div class='field-line'>Confidence: {confidence_text}</div>", unsafe_allow_html=True)
 
-    icon = STATUS_ICONS.get(pred.status, "⚪")
-    st.write(f"Status: {icon} `{pred.status}`")
+    status_icon = STATUS_ICONS.get(pred.status, "⚪")
+    st.markdown(
+        f"<div class='field-line'>Status: {status_icon} <code>{pred.status}</code></div>",
+        unsafe_allow_html=True,
+    )
 
     st.text_area(
         "Draft response",
         value=pred.draft_response,
-        height=120,
+        height=90,
         disabled=True,
         key=f"draft_{pred.id}",
+        label_visibility="collapsed",
     )
 
     if pred.status in ("reviewer_approved", "rejected"):
@@ -133,14 +222,14 @@ def render_prediction_column(label: str, pred: Prediction | None) -> None:
 
     col_a, col_e, col_r = st.columns(3)
     with col_a:
-        if st.button("Approve", key=f"approve_btn_{pred.id}"):
+        if st.button("Approve", key=f"approve_btn_{pred.id}", use_container_width=True):
             handle_approve(pred.id)
             st.rerun()
     with col_e:
-        if st.button("Edit", key=f"edit_btn_{pred.id}"):
+        if st.button("Edit", key=f"edit_btn_{pred.id}", use_container_width=True):
             st.session_state[edit_key] = True
     with col_r:
-        if st.button("Reject", key=f"reject_btn_{pred.id}"):
+        if st.button("Reject", key=f"reject_btn_{pred.id}", use_container_width=True):
             handle_reject(pred.id)
             st.rerun()
 
@@ -162,19 +251,34 @@ def render_prediction_column(label: str, pred: Prediction | None) -> None:
                 st.rerun()
 
 
+def render_request_card(request: Request, preds: dict[str, Prediction | None]) -> None:
+    with st.container(border=True):
+        st.markdown(f"**Request #{request.id}**")
+        st.caption(request.created_at.isoformat())
+
+        message = request.message_text
+        if len(message) > MESSAGE_PREVIEW_CHARS:
+            st.write(message[:MESSAGE_PREVIEW_CHARS].rstrip() + "…")
+            with st.expander("Show full message"):
+                st.write(message)
+        else:
+            st.write(message)
+
+        render_prediction_block("Baseline", "📊", preds["baseline"])
+        st.markdown("<hr class='model-divider'>", unsafe_allow_html=True)
+        render_prediction_block("LLM", "🤖", preds["llm"])
+
+
 rows = load_requests_with_predictions()
 
 if not rows:
     st.info("No requests in the database yet.")
 else:
-    for request, preds in rows:
-        with st.container(border=True):
-            st.subheader(f"Request #{request.id}")
-            st.caption(request.created_at.isoformat())
-            st.write(request.message_text)
+    st.caption(f"{len(rows)} total requests")
 
-            col_baseline, col_llm = st.columns(2)
-            with col_baseline:
-                render_prediction_column("Baseline", preds["baseline"])
-            with col_llm:
-                render_prediction_column("LLM", preds["llm"])
+    for row_start in range(0, len(rows), GRID_COLUMNS):
+        chunk = rows[row_start : row_start + GRID_COLUMNS]
+        grid_cols = st.columns(GRID_COLUMNS)
+        for col, (request, preds) in zip(grid_cols, chunk):
+            with col:
+                render_request_card(request, preds)
