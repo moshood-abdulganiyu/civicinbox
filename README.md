@@ -1,7 +1,21 @@
 # civicinbox
+
 AI-assisted request-triage system that classifies incoming messages, extracts structured details, and drafts reviewable responses for small organizations.
 
+[![CI](https://github.com/moshood-abdulganiyu/civicinbox/actions/workflows/ci.yml/badge.svg)](https://github.com/moshood-abdulganiyu/civicinbox/actions/workflows/ci.yml)
+[![Live Demo](https://img.shields.io/badge/live-demo-available-brightgreen)](https://civicinbox-t2sh7xffbjnwo2ssmeceba.streamlit.app/)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
+### Demo
+
+- Live demo: [Open the application](https://civicinbox-t2sh7xffbjnwo2ssmeceba.streamlit.app/)
+- Demo video: [Watch the walkthrough](https://youtu.be/VIDEO_ID) — Swagger submission → review screen → approve/edit/reject → persistence check
+- API documentation: [OpenAPI docs](https://civicinbox.onrender.com/docs)
+
+[![CivicInbox demo](https://img.youtube.com/vi/VIDEO_ID/0.jpg)](https://youtu.be/VIDEO_ID)
+
+Uses synthetic/seeded demo data only — no real requester information.
 
 ### Architecture
 
@@ -21,7 +35,6 @@ flowchart LR
 Baseline and LLM classification are separate, independently callable endpoints rather than a single merged pipeline — this is deliberate, so either model's output can be evaluated and compared without the other running. Only the LLM path goes through confidence/retry-based routing; the baseline has no `needs_review` concept. Reviewer corrections are written to a separate table from the original prediction, so raw model output is never overwritten — this preserves the data active learning (Step 12) will train on later.
 
 
-
 ### Technology Choices
 
 | Tool | Purpose | Why it was selected |
@@ -36,8 +49,6 @@ Baseline and LLM classification are separate, independently callable endpoints r
 | pytest + ruff | Testing and linting | 34 tests / 92% coverage gate CI; ruff enforces formatting and catches issues like the F811 duplicate-test bug caught this project |
 | Docker | Containerized deployment | FastAPI-only image by design — Streamlit reads SQLite directly off disk and doesn't containerize cleanly without shared-volume complexity not worth it for an internal review tool |
 | GitHub Actions | CI | Two jobs (`test`, `docker` gated on `test`) — trains the baseline fresh every run rather than trusting a committed artifact, and smoke-tests the container's `/health` endpoint |
-
-
 
 
 ### End-to-End Pipeline
@@ -55,15 +66,12 @@ Baseline and LLM classification are separate, independently callable endpoints r
 A reviewer then works through the Streamlit screen: approving, editing, or rejecting each prediction. Edits are written to `reviewer_corrections`, never overwriting the original model output — so both the model's raw guess and the human's correction remain available for the eval report and future active-learning work.
 
 
-
 ### Problem Statement
 
 1. **Who experiences the problem?** Small organizations — NGOs, university departments, local service offices — that receive a steady stream of unstructured requests by email or message, without dedicated triage staff.
 2. **What currently makes it difficult?** Requests arrive as free text with no consistent structure. Staff manually read each one to figure out category, urgency, what's being asked, and what information is missing — a repetitive task prone to inconsistency, especially under volume.
 3. **What decision or task does this system improve?** Given an incoming message, the system classifies it into one of six categories, extracts structured fields (urgency, requested action, entities, missing information), and drafts a reviewable response — reducing the manual read-and-triage step to a review-and-approve step.
 4. **What is outside the scope of the project?** The system does not send responses automatically — every output requires human approval, edit, or rejection before anything goes out. It is not a general-purpose chatbot, and it does not handle multi-turn conversation or attachments.
-
-
 
 
 ### Solution
@@ -75,7 +83,6 @@ The LLM path extracts more than just a category: it produces urgency, requested 
 A reviewer works through pending predictions in a Streamlit screen, seeing both models' output side by side where available, and can approve, edit, or reject each one. Edits are stored separately from the original prediction, preserving the model's raw output alongside the human correction — data intended to support a future active-learning loop (retraining the baseline on corrected examples) rather than being discarded after review.
 
 The project is deliberately narrow in scope: one input channel, a fixed six-category taxonomy, and no autonomous sending. The engineering emphasis is on evaluation rigor — a real baseline, a labeled test set, per-class error analysis — and on handling model uncertainty as a first-class product concern rather than trusting either model's output unconditionally.
-
 
 
 ### Evaluation
@@ -158,7 +165,6 @@ Environment variables required: `DATABASE_URL` (Postgres connection string), `OP
 **Known limitation:** Render's free tier spins down after inactivity — the first request after idle time may take 30–60 seconds to respond while the instance cold-starts.
 
 
-
 ### Results
 
 On a 450-message labeled test set spanning 6 categories, the TF-IDF + LogisticRegression baseline achieved 0.835 macro-F1, outperforming the OpenAI-backed structured classifier's 0.679 macro-F1 (mean of 5 repeated runs, range 0.669–0.692) by roughly 15 points — a gap that held consistently across every repeated run, not a one-off result.
@@ -177,7 +183,6 @@ Retry-on-invalid-JSON logic worked as designed: across the full eval run, invali
 - Splitting `streamlit` into an optional dependency group after the fact (rather than from the start) was avoidable rework — a Docker-only-serves-FastAPI decision made at Step 24 should have been reflected in `pyproject.toml` at the same time, not left as backlog discovered later.
 
 
-
 ### Limitations and Responsible Use
 
 - This system must not be used to auto-send responses without human review. Every prediction — from either model — requires explicit approval, edit, or rejection before any reply is sent; nothing in this pipeline sends messages on its own.
@@ -185,7 +190,6 @@ Retry-on-invalid-JSON logic worked as designed: across the full eval run, invali
 - The labeled dataset (450 messages) is a mix of LLM-drafted and user-authored examples, not exclusively real-world messages; performance on genuinely novel, messier real-world text may differ from these eval numbers. Full dataset composition is disclosed in `evals/README.md`.
 - The review-routing confidence threshold (`LLM_CONFIDENCE_THRESHOLD_PLACEHOLDER = 0.5`) is currently uncalibrated — it was not tuned against the eval set to find an operating point that actually catches more errors. Treat routing decisions as a starting point, not a validated threshold.
 - This is a prototype triage aid for small organizations, not a compliance or legal decision system. It should not be used for requests with legal, medical, or safety implications without additional review layers beyond what's built here.
-
 
 
 ### Future Improvements
@@ -197,7 +201,6 @@ Retry-on-invalid-JSON logic worked as designed: across the full eval run, invali
 - Investigate the `ResourceWarning: unclosed database` in `test_review_actions.py`'s fixture cleanup — currently assumed test-scoped, not yet root-caused.
 
 
-
 ### Project Status
 
 - [x] Core pipeline (baseline + LLM classification, routing, persistence)
@@ -206,3 +209,8 @@ Retry-on-invalid-JSON logic worked as designed: across the full eval run, invali
 - [x] Docker deployment (image builds, CI-gated health smoke test)
 - [x] Live demo (FastAPI on Render + Streamlit UI on Streamlit Community Cloud)
 - [ ] Stretch feature (active-learning retraining loop)
+
+
+### License
+
+MIT License. See [`LICENSE`](LICENSE).
