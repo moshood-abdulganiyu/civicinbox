@@ -151,11 +151,12 @@ uv run pytest --cov=app
 
 **Backend:** FastAPI deployed on Render (free tier) at https://civicinbox.onrender.com
 **Database:** Supabase PostgreSQL (free tier), replacing local SQLite for production
-**Frontend:** Streamlit review UI — not yet deployed (in progress)
+**Frontend:** Streamlit review UI deployed on Streamlit Community Cloud (free tier) at https://civicinbox-t2sh7xffbjnwo2ssmeceba.streamlit.app/
 
-Environment variables required: `DATABASE_URL` (Postgres connection string), `OPENAI_API_KEY`. Set as Render environment variables for the backend; local development falls back to SQLite automatically if `DATABASE_URL` is unset.
+Environment variables required: `DATABASE_URL` (Postgres connection string), `OPENAI_API_KEY`. Set as Render environment variables for the backend; `DATABASE_URL` alone is set as a Streamlit Cloud secret for the frontend, which is read-only against the same database and never calls the LLM. Local development falls back to SQLite automatically if `DATABASE_URL` is unset.
 
 **Known limitation:** Render's free tier spins down after inactivity — the first request after idle time may take 30–60 seconds to respond while the instance cold-starts.
+
 
 
 ### Results
@@ -192,7 +193,6 @@ Retry-on-invalid-JSON logic worked as designed: across the full eval run, invali
 - Calibrate the `LLM_CONFIDENCE_THRESHOLD_PLACEHOLDER` against the eval set rather than leaving it at an arbitrary 0.5.
 - Investigate whether a taxonomy redefinition (e.g. explicit disambiguation examples in the category description, or merging/splitting `academic_records`/`complaint_escalation`) reduces the LLM's dominant confusion, and re-run the eval to check.
 - Implement the active-learning loop: retrain the baseline on `reviewer_corrections` data and compare pre/post macro-F1 (Step 30, currently optional/stretch).
-- Deploy to Render/Railway (backend) and Streamlit Community Cloud (UI) per the project's zero-cost stack plan (Step 28).
 - Close the remaining line-level coverage gaps (`llm_client.py`, `db.py`, `main.py` error paths) noted in the eval/test backlog.
 - Investigate the `ResourceWarning: unclosed database` in `test_review_actions.py`'s fixture cleanup — currently assumed test-scoped, not yet root-caused.
 
@@ -204,5 +204,5 @@ Retry-on-invalid-JSON logic worked as designed: across the full eval run, invali
 - [x] Evaluation set (450 labeled messages, baseline vs. LLM comparison)
 - [x] Tests (34 passed, 92% coverage)
 - [x] Docker deployment (image builds, CI-gated health smoke test)
-- [ ] Live demo (Render/Railway + Streamlit Community Cloud — not yet deployed)
+- [x] Live demo (FastAPI on Render + Streamlit UI on Streamlit Community Cloud)
 - [ ] Stretch feature (active-learning retraining loop)
