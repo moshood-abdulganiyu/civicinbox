@@ -14,6 +14,11 @@ from collections import defaultdict
 
 import streamlit as st
 
+DATABASE_URL_KEY = "DATABASE_URL"
+if DATABASE_URL_KEY in st.secrets:
+    import os
+    os.environ[DATABASE_URL_KEY] = st.secrets[DATABASE_URL_KEY]
+
 from app.models.db import SessionLocal
 from app.models.db_models import Prediction, Request
 from app.services.review_actions import (
