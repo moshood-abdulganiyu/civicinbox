@@ -41,11 +41,6 @@ class TriageResult(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0)
 
 
-# ------------------------------
-# STEP 10
-# ------------------------------
-
-
 class ClassifyRequest(BaseModel):
     """Input for both /classify/baseline and /classify/llm."""
 
