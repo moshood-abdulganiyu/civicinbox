@@ -20,6 +20,7 @@ import streamlit as st
 DATABASE_URL_KEY = "DATABASE_URL"
 if DATABASE_URL_KEY in st.secrets:
     import os
+
     os.environ[DATABASE_URL_KEY] = st.secrets[DATABASE_URL_KEY]
 
 from app.models.db import SessionLocal
@@ -193,11 +194,23 @@ def render_prediction_block(label: str, icon: str, pred: Prediction | None) -> N
         st.caption("No prediction yet.")
         return
 
-    st.markdown(f"<div class='field-line'>Category: <code>{pred.category}</code></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='field-line'>Urgency: <code>{pred.urgency}</code></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='field-line'>Action: {pred.requested_action}</div>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='field-line'>Category: <code>{pred.category}</code></div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f"<div class='field-line'>Urgency: <code>{pred.urgency}</code></div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f"<div class='field-line'>Action: {pred.requested_action}</div>",
+        unsafe_allow_html=True,
+    )
     confidence_text = f"{pred.confidence:.2f}" if pred.confidence is not None else "n/a"
-    st.markdown(f"<div class='field-line'>Confidence: {confidence_text}</div>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='field-line'>Confidence: {confidence_text}</div>",
+        unsafe_allow_html=True,
+    )
 
     status_icon = STATUS_ICONS.get(pred.status, "⚪")
     st.markdown(
