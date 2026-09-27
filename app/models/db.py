@@ -7,14 +7,13 @@ in table definitions it doesn't need, and vice versa.
 """
 
 from dotenv import load_dotenv
+
 load_dotenv()
 import os
-
 from collections.abc import Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
-
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///civicinbox.db")
 
