@@ -2,7 +2,7 @@
 
 AI-assisted request-triage system that classifies incoming messages, extracts structured details, and drafts reviewable responses for small organizations.
 
-[![CI](https://github.com/moshood-abdulganiyu/civicinbox/actions/workflows/ci.yml/badge.svg)](https://github.com/moshood-abdulganiyu/civicinbox/actions/workflows/ci.yml)
+[![CI](https://github.com/moshood-abdulganiyu/civicinbox/workflows/ci.yml/badge.svg)](https://github.com/moshood-abdulganiyu/civicinbox/workflows/ci.yml)
 [![Live Demo](https://img.shields.io/badge/live-demo-available-brightgreen)](https://civicinbox-t2sh7xffbjnwo2ssmeceba.streamlit.app/)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -10,7 +10,7 @@ AI-assisted request-triage system that classifies incoming messages, extracts st
 ### Demo
 
 - Live demo: [Open the application](https://civicinbox-t2sh7xffbjnwo2ssmeceba.streamlit.app/)
-- Demo video: [Watch the walkthrough](https://youtu.be/VIDEO_ID) — Swagger submission → review screen → approve/edit/reject → persistence check
+- Demo video: [Watch the walkthrough](https://youtu.be/0qJS7u9Jb6I) — Swagger submission → review screen → approve/edit/reject → persistence check
 - API documentation: [OpenAPI docs](https://civicinbox.onrender.com/docs)
 
 [![CivicInbox demo](https://img.youtube.com/vi/0qJS7u9Jb6I/0.jpg)](https://youtu.be/0qJS7u9Jb6I)
